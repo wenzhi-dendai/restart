@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.znsd.ssm.dao.StudentDao">
+
+	<cache size="2"/>
+	
+	<sql id="selectfile">
+		select * from
+	</sql>
+
+	<resultMap type="com.znsd.ssm.entities.User" id="studentMap">
+	    <id property="user_id" column="user_id" />
+	    <result property="user_name" column="user_name" />
+	    <result property="user_sex" column="user_sex" />
+	    <result property="user_mailsta" column="user_mail" />
+<!-- 		<association property="clazz" javaType="com.znsd.jsp.entities.Clazz">
+			<id property="class_id" column="class_id"/>
+			<result property="class_name" column="class_name"/>
+		</association> -->
+<!-- 		<result property="clazz.class_id" column="class_id" />
+		<result property="clazz.class_name" column="class_name" /> -->
+ 		<association property="clazz" column="class_id"
+		 select="com.znsd.ssm.dao.ClazzDao.file1" /> 
+			
+	</resultMap>
+
+
+
+    <select id="file" resultMap="studentMap">
+   	 select * from tb_user
+ 	 </select>
+  
+  <select id="file1" resultMap="studentMap" parameterType="int">
+    select * from tb_user where user_id=#{user_id}
+  </select>   
+  
+  <select id="file5" resultMap="studentMap">
+    select * from tb_user where user_name=#{user_name}
+  </select>     
+  
+    <select id="file2" parameterType="com.znsd.ssm.entities.User" resultMap="studentMap">
+	   	 select * from tb_user
+	   	 <where>
+		   	 <if test="user_id!=null and user_id!=''">
+		   	 	and user_id=#{user_id}
+		   	 </if>
+		   	 <if test="user_name!=null and user_name!=''">
+		   	 	and user_name=#{user_name}
+		   	 </if>	   
+		   	 <if test="user_mailsta!=null and user_mailsta!=''">
+		   	 	and user_mail=#{user_mailsta}
+		   	 </if>		
+	   	 </where>   	 	 
+ 	</select>  
+  
+     <select id="file3" parameterType="com.znsd.ssm.entities.User" resultMap="studentMap">
+	   	 select * from tb_user
+ 	 	 <where>
+ 	 	 	<choose>
+ 	 	 		<when test="user_name!=null and user_name!=''">
+ 	 	 			and user_name=#{user_name}
+ 	 	 		</when> 	 	 	
+ 	 	 	
+ 	 	 		<when test="user_id!=null and user_id!=''">
+ 	 	 			and user_id=#{user_id}
+ 	 	 		</when>
+
+ 	 	 		<otherwise>
+ 	 	 			and 1=1
+ 	 	 		</otherwise>
+ 	 	 	</choose>
+ 	 	 </where>
+ 	</select>  
+  
+     <select id="file4" parameterType="com.znsd.ssm.entities.User" resultMap="studentMap">
+	   	 <include refid="selectfile"/>tb_user where user_id in	 
+	   	 <foreach collection="list" index="i" item="item" open="(" close=")" separator=",">
+	   	 	#{item}
+	   	 </foreach>	 
+ 	</select>  
+  
+  
+   <insert  id="add" parameterType="com.znsd.ssm.entities.User" useGeneratedKeys="true" keyProperty="user_id">
+    insert into tb_user(user_name,user_sex,user_mail)
+    values(#{user_name},#{user_sex},#{user_mail})
+  </insert>  
+  
+  <update id="update" parameterType="com.znsd.ssm.entities.User">
+  	update tb_user
+  	<trim prefix="set" suffixOverrides=",">
+  		<if test="user_name!=null and user_name!=''">
+  			user_name=#{user_name},
+  		</if>
+  		<if test="user_sex!=null and user_sex!=''">
+  			user_sex=#{user_sex},
+  		</if>  
+  		<if test="user_mailsta!=null and user_mailsta!=''">
+  			user_mail=#{user_mailsta},
+  		</if>  	
+  		<if test="clazz.class_id!=null and clazz.class_id!=''">
+  			class_id=#{clazz.class_id},
+  		</if>  			
+  	</trim>
+  	where user_id=#{user_id}
+  </update>
+  
+  <insert id="insert" parameterType="com.znsd.ssm.entities.User">
+  	insert into tb_user(user_name,user_sex,user_mail,class_id)
+  	values(#{user_name},#{user_sex},#{user_mailsta},#{clazz.class_id})
+  </insert>
+  
+  <delete id="delete"  parameterType="com.znsd.ssm.entities.User">
+  	delete from tb_user where user_id=#{user_id}
+  </delete>
+  
+  
+</mapper>

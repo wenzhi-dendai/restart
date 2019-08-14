@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.2.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.2.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.2.xsd">
+
+<!-- SpringIOC的配置文件，排除@Controller和@ControllerAdvice注解修饰的类 -->
+<context:component-scan base-package="com.znsd.ssm">
+	<context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller" />
+	<context:exclude-filter type="annotation" expression="org.springframework.web.bind.annotation.ControllerAdvice" />
+</context:component-scan>
+
+
+
+	<!-- 1.配置 securityManager管理器 -->
+	<bean id="securityManager"
+		class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+		<!-- 缓存管理器 -->
+		<property name="cacheManager" ref="cacheManager" />
+		<!-- 配置session的管理方式 -->
+		<!-- <property name="sessionMode" value="native"/> -->
+		<property name="realm" ref="shiroRealm" />
+
+		<!-- 配置权限验证 -->
+		<!-- <property name="authenticator" ref="authenticator"></property> -->
+	</bean>
+
+	<!-- 2.配置缓存管理器，可以设置缓存 -->
+	<!-- 2.1 添加ehcache的jar包和配置文件 -->
+	<bean id="cacheManager"
+		class="org.apache.shiro.cache.ehcache.EhCacheManager">
+		<!-- <property name="cacheManager" ref="ehCacheManager"/> -->
+		<property name="cacheManagerConfigFile"
+			value="classpath:ehcache.xml" />
+	</bean>
+
+
+	<!-- 3.配置实现了realm接口的bean -->
+	<bean id="shiroRealm" class="com.znsd.ssm.realms.ShiroRealm"></bean>
+
+
+	<!-- 4.配置lifecycleBeanPostProcessor,可以自动调用配置在spring中的shrio对象生命周期方法。 -->
+	<bean id="lifecycleBeanPostProcessor"
+		class="org.apache.shiro.spring.LifecycleBeanPostProcessor" />
+
+	<!-- 5.启用IOC容器中的shiro注解，但必须在配置 lifecycleBeanPostProcessor 后才会生效。 -->
+	<bean
+		class="org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator"
+		depends-on="lifecycleBeanPostProcessor" />
+	<bean
+		class="org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor">
+		<property name="securityManager" ref="securityManager" />
+	</bean>
+
+
+
+	<!-- 6.配置shiroFilter过滤器相关的属性。 6.1 id必须 和web.xml中配置的filter-name一致。 -->
+	<bean id="shiroFilter"
+		class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+		<property name="securityManager" ref="securityManager" />
+		<!-- 用户的登录页面 -->
+		<property name="loginUrl" value="/login" />
+		<!-- 登录成功之后的页面 -->
+		<property name="successUrl" value="/find" />
+		<!-- 没有授权时返回的页面 -->
+		<property name="unauthorizedUrl" value="/unauthorized" />
+		<!-- 配置哪些页面需要被保护，以及访问该页面所需要的权限。 anon： 表示可以匿名访问。 authc：表示需要登录之后才可以访问。 -->
+ 		<property name="filterChainDefinitions">
+			<value>
+				/login = anon
+				/logout.jsp = logout <!-- 注销 -->
+				/** = authc
+			</value>
+		</property>
+	</bean>
+
+
+
+
+
+
+
+ <bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource" init-method="init" destroy-method="close"> 
+     <property name="url" value="jdbc:mysql://localhost:3306/vote4" />
+     <property name="username" value="root" />
+     <property name="password" value="123456" />
+
+     <property name="filters" value="stat" />
+
+     <property name="maxActive" value="20" />
+     <property name="initialSize" value="1" />
+     <property name="maxWait" value="60000" />
+     <property name="minIdle" value="1" />
+
+     <property name="timeBetweenEvictionRunsMillis" value="60000" />
+     <property name="minEvictableIdleTimeMillis" value="300000" />
+
+     <property name="testWhileIdle" value="true" />
+     <property name="testOnBorrow" value="false" />
+     <property name="testOnReturn" value="false" />
+
+     <property name="poolPreparedStatements" value="true" />
+     <property name="maxOpenPreparedStatements" value="20" />
+
+     <property name="asyncInit" value="true" />
+ </bean>
+
+<!-- Spring扫描所有的mapper文件 -->
+<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+	<!-- 设置连接池对象 -->
+	<property name="dataSource" ref="dataSource" />
+	<!-- Mappper所在的包路径 -->
+	<property name="mapperLocations" value="classpath:com/znsd/ssm/mapper/*.xml" />
+	<!-- 指定mybatis的配置文件 -->
+	<property name="configLocation" value="classpath:conf.xml"></property>
+</bean>
+<!-- Spring 扫描DAO包 -->
+<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+	<!-- DAO包所在的包路径 -->
+	<property name="basePackage" value="com.znsd.ssm.dao" />
+	<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory" />
+</bean>
+
+<!-- 配置事务 -->
+<bean id="txManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+	<property name="dataSource" ref="dataSource" />
+</bean>
+
+<!-- 事务的通知方式 -->
+<tx:advice id="txAdvice" transaction-manager="txManager">
+	<tx:attributes>
+		<tx:method name="find*" propagation="REQUIRED" read-only="true" />
+		<tx:method name="search*" propagation="REQUIRED" read-only="true" />
+		<tx:method name="query*" propagation="REQUIRED" read-only="true" />
+
+		<tx:method name="add*" propagation="REQUIRED" />
+		<tx:method name="submit*" propagation="REQUIRED" />
+		<tx:method name="save*" propagation="REQUIRED" />
+		<tx:method name="insert*" propagation="REQUIRED" />
+
+		<tx:method name="del*" propagation="REQUIRED" />
+		<tx:method name="remove*" propagation="REQUIRED" />
+
+		<tx:method name="update*" propagation="REQUIRED" />
+		<tx:method name="modify*" propagation="REQUIRED" />
+
+		<tx:method name="*" propagation="REQUIRED" read-only="true" />
+	</tx:attributes>
+</tx:advice>
+
+<!-- AOP切面拦截事务 -->
+<aop:config>
+    <aop:pointcut id="serviceMethod"
+        expression="execution(* com.znsd.ssm.service.*.*.*(..))" />
+    <aop:advisor advice-ref="txAdvice" pointcut-ref="serviceMethod" />
+</aop:config>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</beans>
